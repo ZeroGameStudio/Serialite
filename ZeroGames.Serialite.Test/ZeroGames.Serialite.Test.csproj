@@ -1,0 +1,30 @@
+﻿<Project Sdk="ZeroGames.NET.Sdk/1.0.0">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Authors>Lin7Han</Authors>
+        <Company>ZeroGames</Company>
+        <AssemblyVersion>1.0.0</AssemblyVersion>
+        <FileVersion>1.0.0</FileVersion>
+        <NeutralLanguage>zh</NeutralLanguage>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Using Include="System.Byte" Alias="uint8" />
+        <Using Include="System.UInt16" Alias="uint16" />
+        <Using Include="System.UInt32" Alias="uint32" />
+        <Using Include="System.UInt64" Alias="uint64" />
+        <Using Include="System.SByte" Alias="int8" />
+        <Using Include="System.Int16" Alias="int16" />
+        <Using Include="System.Int32" Alias="int32" />
+        <Using Include="System.Int64" Alias="int64" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ZeroGames.Serialite\ZeroGames.Serialite.csproj" />
+    </ItemGroup>
+
+</Project>

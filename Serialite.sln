@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZeroGames.Serialite", "ZeroGames.Serialite\ZeroGames.Serialite.csproj", "{9F7E1FE6-8DEE-75AA-7F05-060BC7816E76}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9F7E1FE6-8DEE-75AA-7F05-060BC7816E76}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F7E1FE6-8DEE-75AA-7F05-060BC7816E76}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F7E1FE6-8DEE-75AA-7F05-060BC7816E76}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F7E1FE6-8DEE-75AA-7F05-060BC7816E76}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2AA8D8F4-FB38-4FD1-9BC0-34AA2D40A279}
+	EndGlobalSection
+EndGlobal

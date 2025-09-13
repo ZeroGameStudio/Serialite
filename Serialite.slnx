@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ZeroGames.Serialite.Test\ZeroGames.Serialite.Test.csproj" Type="Classic C#" />
+  <Project Path="ZeroGames.Serialite\ZeroGames.Serialite.csproj" Type="Classic C#" />
+</Solution>

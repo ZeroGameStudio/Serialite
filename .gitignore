@@ -1,0 +1,13 @@
+# Visual Studio 2015 user specific files
+.vs/
+
+# Rider user specific files
+.idea/
+*.DotSettings
+*.DotSettings.user
+
+# .NET Intermediate files
+obj/
+bin/
+
+
