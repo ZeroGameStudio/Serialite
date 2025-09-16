@@ -40,20 +40,10 @@ partial class Serialiter
             .Where(p => p.CanWrite && backingFields.Contains(p.Name))
             .ToArray();
 
-        if (properties.Length != (ast.Children?.Count ?? 0))
-        {
-            throw new FormatException();
-        }
-
-        // No property, nothing to do.
-        if (ast.Children is null)
-        {
-            return;
-        }
+        HashSet<PropertyInfo> requiredProperties = properties.Where(p => p.GetCustomAttribute<RequiredMemberAttribute>() is not null).ToHashSet();
 
         HashSet<string> names = properties.Select(p => p.Name).ToHashSet();
-        names.SymmetricExceptWith(ast.Children.Keys);
-        if (names.Count is not 0)
+        if (ast.Children is not null && names.Union(ast.Children.Keys).Count() != names.Count)
         {
             throw new FormatException();
         }
@@ -63,11 +53,17 @@ partial class Serialiter
         {
             if (ast.Children?.TryGetValue(property.Name, out Node propertyNode) is not true)
             {
-                throw new FormatException($"");
+                throw new FormatException();
             }
             
             object? value = ConvertValue(propertyNode, property.PropertyType);
             property.SetValue(dest, value);
+            requiredProperties.Remove(property);
+        }
+
+        if (requiredProperties.Count > 0)
+        {
+            throw new FormatException($"Missing required properties: {string.Join(", ", requiredProperties.Select(p => p.Name))}.");
         }
     }
 
