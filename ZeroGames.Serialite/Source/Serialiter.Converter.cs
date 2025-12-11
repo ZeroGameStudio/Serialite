@@ -1,5 +1,7 @@
 ﻿// Copyright Zero Games. All Rights Reserved.
 
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
@@ -8,6 +10,29 @@ namespace ZeroGames.Serialite;
 
 partial class Serialiter
 {
+    
+    private static Type? GetGenericInstanceOf(Type thisType, Type targetType)
+    {
+        if (!targetType.IsGenericTypeDefinition)
+        {
+            throw new ArgumentOutOfRangeException(nameof(targetType));
+        }
+
+        // Check whether any base type of this type is an instance of targetType.
+        Type? currentType = thisType;
+        while (currentType is not null)
+        {
+            if (currentType.IsGenericType && currentType.GetGenericTypeDefinition() == targetType)
+            {
+                return currentType;
+            }
+				
+            currentType = currentType.BaseType;
+        }
+
+        // Check whether any implemented interface of this type is an instance of targetType.
+        return thisType.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == targetType);
+    }
     
     private void Convert(Node ast, object dest)
     {
@@ -33,7 +58,7 @@ partial class Serialiter
         // 1. Found all settable auto properties (property with compiler generated backing field).
         HashSet<string> backingFields = allTypes
             .SelectMany(t => t.GetFields(BindingFlags.NonPublic | BindingFlags.Instance))
-            .Where(f => _backingFieldRegex.IsMatch(f.Name) && f.GetCustomAttribute<CompilerGeneratedAttribute>() is not null)
+            .Where(f => BackingFieldRegex.IsMatch(f.Name) && f.GetCustomAttribute<CompilerGeneratedAttribute>() is not null)
             .Select(f => f.Name.Substring(1, f.Name.IndexOf('>') - 1))
             .ToHashSet();
         PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -53,7 +78,7 @@ partial class Serialiter
         {
             if (ast.Children?.TryGetValue(property.Name, out Node propertyNode) is not true)
             {
-                throw new FormatException();
+                continue;
             }
             
             object? value = ConvertValue(propertyNode, property.PropertyType);
@@ -70,18 +95,19 @@ partial class Serialiter
     private object? ConvertValue(Node node, Type type)
         => node.Type switch
         {
-            ENodeType.Number => ConvertNumber(node, type),
+            ENodeType.Number => ConvertNumber(node.Value, type),
             ENodeType.Bool => bool.Parse(node.Value),
-            ENodeType.String => node.Value,
+            ENodeType.String => ConvertString(node.Value, type), // Support IParsable.
             ENodeType.Object => ConvertObject(node, type),
+            ENodeType.List => ConvertList(node, type),
+            ENodeType.Map => ConvertMap(node, type),
             ENodeType.Null => null,
-            ENodeType.Identifier => ConvertIdentifier(node, type),
+            ENodeType.Identifier => ConvertIdentifier(node.Value, type),
             _ => throw new FormatException()
         };
 
-    private object ConvertNumber(Node node, Type type)
+    private object ConvertNumber(string value, Type type)
     {
-        string value = node.Value;
         if (type == typeof(uint8))
         {
             return uint8.Parse(value);
@@ -139,22 +165,114 @@ partial class Serialiter
             throw new FormatException();
         }
     }
+
+    private object ConvertString(string value, Type type)
+    {
+        if (type == typeof(string))
+        {
+            return value;
+        }
+        else if (type.IsAssignableTo(typeof(IParsable<>).MakeGenericType(type)))
+        {
+            if (!_parseMethodCache.TryGetValue(type, out var parse))
+            {
+                parse = type.GetMethod(nameof(IParsable<>.Parse), BindingFlags.Public | BindingFlags.Static, ParseParameterTypes)! ;
+                _parseMethodCache[type] = parse;
+            }
+            
+            return parse.Invoke(null, [value, null]) ?? throw new FormatException($"Failed to parse [{value}] as [{type.Name}]");
+        }
+
+        throw new NotSupportedException($"Type [{type.Name}] is not parsable from string [{value}].");
+    }
+
+    private Serialiter SelectSerialiter(Type type)
+    {
+        Serialiter serialiter = this;
+        if (InnerSerialiters is not null)
+        {
+            foreach (var (allowedType, innerSerialiter) in InnerSerialiters)
+            {
+                if (type.IsAssignableTo(allowedType))
+                {
+                    serialiter = innerSerialiter;
+                    break;
+                }
+            }
+        }
+
+        return serialiter;
+    }
     
     private object ConvertObject(Node node, Type type)
     {
+        Serialiter serialiter = SelectSerialiter(type);
         if (node.Value.Length > 0)
         {
-            type = Context.GetType(node.Value, type);
+            type = serialiter.Context.GetType(node.Value, type);
         }
         
-        object result = ObjectFactory(type);
+        object result = serialiter.ObjectFactory(type);
         Convert(node, result);
         return result;
     }
-    
-    private object? ConvertIdentifier(Node node, Type type)
+
+    private object ConvertList(Node node, Type type)
     {
-        string identifier = node.Value;
+        if (GetGenericInstanceOf(type, typeof(IReadOnlyList<>)) is { } genericListType)
+        {
+            Type elementType = genericListType.GetGenericArguments()[0];
+            Type listType = typeof(List<>).MakeGenericType(elementType);
+            var list = (IList)ObjectFactory(listType);
+            foreach (var (_, child) in node.Children ?? [])
+            {
+                list.Add(ConvertValue(child, elementType));
+            }
+
+            return list;
+        }
+        else if (GetGenericInstanceOf(type, typeof(IReadOnlySet<>)) is { } genericSetType)
+        {
+            Type elementType = genericSetType.GetGenericArguments()[0];
+            Type setType = typeof(HashSet<>).MakeGenericType(genericSetType.GetGenericArguments()[0]);
+            object set = ObjectFactory(setType);
+            MethodInfo add = setType.GetMethod(nameof(HashSet<>.Add))!;
+            foreach (var (_, child) in node.Children ?? [])
+            {
+                add.Invoke(set, [ConvertValue(child, elementType)]);
+            }
+
+            return set;
+        }
+        else
+        {
+            throw new NotSupportedException();
+        }
+    }
+
+    private object ConvertMap(Node node, Type type)
+    {
+        if (GetGenericInstanceOf(type, typeof(IReadOnlyDictionary<,>)) is { } genericMapType)
+        {
+            Type keyType = genericMapType.GetGenericArguments()[0];
+            Type valueType = genericMapType.GetGenericArguments()[1];
+            Type mapType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+            var map = (IDictionary)ObjectFactory(mapType);
+            foreach (var (_, pair) in node.Children ?? [])
+            {
+                map[ConvertValue(pair.Children!["Key"], keyType)!] = ConvertValue(pair.Children!["Value"], valueType);
+            }
+
+            return map;
+        }
+        else
+        {
+            throw new NotSupportedException();
+        }
+    }
+    
+    private object? ConvertIdentifier(string identifier, Type type)
+    {
         if (type.IsEnum)
         {
             string enumName = type.Name;
@@ -178,7 +296,12 @@ partial class Serialiter
     }
     
     [GeneratedRegex("^<[A-Za-z_][A-Za-z0-9_]*>k__BackingField$")]
-    private static partial Regex _backingFieldRegex { get; }
+    private static partial Regex BackingFieldRegex { get; }
+
+    [field: MaybeNull]
+    private static Type[] ParseParameterTypes => field ??= [typeof(string), typeof(IFormatProvider)];
+    
+    private static readonly Dictionary<Type, MethodInfo> _parseMethodCache = [];
     
 }
 

@@ -8,13 +8,17 @@ public partial class Serialiter
     public string Serialize(object source) => throw new NotImplementedException();
 
     public void Deserialize(string source, object dest)
-        => Convert(Parse(Tokenize(source)), dest);
+    {
+        Serialiter serialiter = SelectSerialiter(dest.GetType());
+        serialiter.Convert(Parse(Tokenize(source)), dest);
+    }
 
     public object Deserialize(string source, Type baseType)
         => ConvertObject(Parse(Tokenize(source)), baseType);
 
     public IContext Context { get; init; } = NullContext.Instance;
     public Func<Type, object> ObjectFactory { get; init; } = type => Activator.CreateInstance(type)!;
+    public IReadOnlyDictionary<Type, Serialiter>? InnerSerialiters { get; init; }
 
     private class NullContext : IContext
     {

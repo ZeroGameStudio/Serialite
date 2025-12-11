@@ -18,7 +18,12 @@ partial class Serialiter
         IdentifierPath,
         LeftParen,
         RightParen,
+        LeftBracket,
+        RightBracket,
+        LeftBrace,
+        RightBrace,
         Equals,
+        Colon,
         Comma,
         EndOfInput
     }
@@ -44,25 +49,55 @@ partial class Serialiter
             {
                 case '(':
                 {
-                    yield return new Token(ETokenType.LeftParen, "(");
+                    yield return new Token(ETokenType.LeftParen, string.Empty);
                     ++i;
                     break;
                 }
                 case ')':
                 {
-                    yield return new Token(ETokenType.RightParen, ")");
+                    yield return new Token(ETokenType.RightParen, string.Empty);
+                    ++i;
+                    break;
+                }
+                case '[':
+                {
+                    yield return new Token(ETokenType.LeftBracket, string.Empty);
+                    ++i;
+                    break;
+                }
+                case ']':
+                {
+                    yield return new Token(ETokenType.RightBracket, string.Empty);
+                    ++i;
+                    break;
+                }
+                case '{':
+                {
+                    yield return new Token(ETokenType.LeftBrace, string.Empty);
+                    ++i;
+                    break;
+                }
+                case '}':
+                {
+                    yield return new Token(ETokenType.RightBrace, string.Empty);
                     ++i;
                     break;
                 }
                 case '=':
                 {
-                    yield return new Token(ETokenType.Equals, "=");
+                    yield return new Token(ETokenType.Equals, string.Empty);
+                    ++i;
+                    break;
+                }
+                case ':':
+                {
+                    yield return new Token(ETokenType.Colon, string.Empty);
                     ++i;
                     break;
                 }
                 case ',':
                 {
-                    yield return new Token(ETokenType.Comma, ",");
+                    yield return new Token(ETokenType.Comma, string.Empty);
                     ++i;
                     break;
                 }

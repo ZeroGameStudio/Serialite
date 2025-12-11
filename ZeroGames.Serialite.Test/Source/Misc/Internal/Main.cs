@@ -18,13 +18,13 @@ void TestDeserialize()
         Console.WriteLine("\n--- Testing Deserialize Method ---");
         
         // Create a simple test class
-        TestPerson testObject = new TestPersonSub();
+        //TestPerson testObject = new TestPersonSub();
         
         // Test deserialization (this will call the lexer and parser internally)
-        string serialiteInput = "(Name=\"John\", Age=HAHAHA, Active=true)";
+        string serialiteInput = @"(Name=""John"", Age=HAHAHA, Active=true, Time=""1999-10-31T02:00:00"", IntList=[1,2,3], IntSet=[4,5,6,6,], IntMap={1:""df"",3:""4aaa"",})";
         Console.WriteLine($"Input: {serialiteInput}");
         
-        testObject = serializer.Deserialize<TestPerson>(serialiteInput);
+        var testObject = serializer.Deserialize<TestPerson>(serialiteInput);
         
         Console.WriteLine($"Deserialized: Type={testObject.GetType().Name} Name={testObject.Name}, Age={testObject.Age}, Active={testObject.Active}");
         Console.WriteLine("✅ Deserialize test completed");
@@ -51,6 +51,10 @@ public class TestPerson
     public string Name { get; set; } = string.Empty;
     public int Age { get; set; }
     public bool Active { get; set; }
+    public DateTime Time { get; set; }
+    public required IReadOnlyList<int32> IntList { get; set; }
+    public required IReadOnlySet<int32> IntSet { get; set; }
+    public required IReadOnlyDictionary<int32, string> IntMap { get; set; }
 }
 
 public class TestPersonSub : TestPerson;
